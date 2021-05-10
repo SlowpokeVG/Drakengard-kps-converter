@@ -15,17 +15,18 @@ function kps2json(filePath)
     const listCounter = inputFile.readUInt32LE(0x18);
     let messages = [];
     console.log(listCounter);
-    function readMessage (start, file)
+    function readMessage (start, end, file)
     {
-        let end = start;
-        while ((file[end] != 0x00)&&(end < file.length)) end++;
         string = jconv.decode(file.slice(start,end), 'SJIS');
         return string;
     }
     
     for (let i=0; i<listCounter; i++)
     {
-        messages.push(readMessage(inputFile.readUInt32LE(listStart + i*4), inputFile));
+        if (i < listCounter-1)
+            messages.push(readMessage(inputFile.readUInt32LE(listStart + i*4), inputFile.readUInt32LE(listStart + (i+1)*4), inputFile));
+        else
+            messages.push(readMessage(inputFile.readUInt32LE(listStart + i*4), inputFile.length, inputFile));
     }
     fs.writeFileSync(filePath + ".json", JSON.stringify(messages, null, 2));
 }

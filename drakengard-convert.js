@@ -45,8 +45,8 @@ function json2kps(filePath)
     {
         listBuffer.writeUInt32LE(offset,i*4);
         let messageBuffer = Buffer.from(jconv.convert(messages[i], 'utf-8', 'SJIS'));
-        offset += messageBuffer.length + 1;
-        textBuffer = Buffer.concat([textBuffer, messageBuffer, Buffer.from([0x00])]);
+        offset += messageBuffer.length;
+        textBuffer = Buffer.concat([textBuffer, messageBuffer]);
     }
     if (!fs.existsSync(path.join(path.parse(filePath).dir, "edited"))){
         fs.mkdirSync(path.join(path.parse(filePath).dir, "edited"));

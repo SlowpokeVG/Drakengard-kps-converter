@@ -1,11 +1,43 @@
 const fs = require("fs");
 const path = require("path");
-const jconv = require('jconv');
+let symbols = require('./dgtable');
 
 let arg = process.argv.slice(2);
 for (let n = 0; n < arg.length; n++) {
     if (arg[n].slice(-3) == "kps")    kps2json(arg[n]);
     if (arg[n].slice(-4) == "json")   json2kps(arg[n]);
+}
+
+function writeMessage(messageString)
+{
+    let charArray = [];
+    for (let n=0; n<messageString.length; n++)
+    {
+        if (messageString[n] == '<') 
+        {
+            charArray.push(parseInt(messageString[n+1]+messageString[n+2], 16));
+            n+=3;
+        }
+        else if(messageString[n] != '>') 
+        charArray.push(symbols.table.getNameByValue(messageString[n]));
+    }    
+    
+    let messageBuffer = Buffer.from(charArray);
+    return messageBuffer;
+}
+
+function readMessage (start,end, file)
+{
+    let stringe = '';
+    while (start < end)
+    {
+        if (symbols.table.getValueByName(file[start].toString()) == undefined) 
+            stringe += '<' + file[start].toString(16).padStart(2, '0')+'>';
+        else 
+            stringe += symbols.table.getValueByName(file[start].toString());
+        start++;
+    }    
+    return stringe;
 }
 
 function kps2json(filePath)
@@ -15,12 +47,7 @@ function kps2json(filePath)
     const listCounter = inputFile.readUInt32LE(0x18);
     let messages = [];
     console.log(listCounter);
-    function readMessage (start, end, file)
-    {
-        string = jconv.decode(file.slice(start,end), 'SJIS');
-        return string;
-    }
-    
+
     for (let i=0; i<listCounter; i++)
     {
         if (i < listCounter-1)
@@ -28,7 +55,8 @@ function kps2json(filePath)
         else
             messages.push(readMessage(inputFile.readUInt32LE(listStart + i*4), inputFile.length, inputFile));
     }
-    fs.writeFileSync(filePath + ".json", JSON.stringify(messages, null, 2));
+
+    fs.writeFileSync(filePath + ".json",JSON.stringify(messages, null, 2));
 }
 
 function json2kps(filePath)
@@ -44,7 +72,7 @@ function json2kps(filePath)
     for (let i=0; i<Object.keys(messages).length; i++)
     {
         listBuffer.writeUInt32LE(offset,i*4);
-        let messageBuffer = Buffer.from(jconv.convert(messages[i], 'utf-8', 'SJIS'));
+        let messageBuffer = writeMessage(messages[i]);
         offset += messageBuffer.length;
         textBuffer = Buffer.concat([textBuffer, messageBuffer]);
     }
